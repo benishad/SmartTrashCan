@@ -18,9 +18,10 @@
             "includePath": [
                 "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\cores\\arduino",
                 "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\variants\\eightanaloginputs",
-                "C:\\Users\\Dongyoon\\Documents\\Arduino\\libraries\\LiquidCrystal_I2C",
+                "C:\\Users\\kin34\\OneDrive\\문서\\Arduino\\libraries\\LiquidCrystal_I2C",
                 "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\libraries\\Wire\\src",
-                "C:\\Users\\Dongyoon\\Documents\\Arduino\\libraries\\Rtc_by_Makuna\\src",
+                "C:\\Users\\kin34\\OneDrive\\문서\\Arduino\\libraries\\RTCLib_by_Johnny\\src",
+                "C:\\Users\\kin34\\OneDrive\\문서\\Arduino\\libraries\\HX711",
                 "c:\\program files (x86)\\arduino\\hardware\\tools\\avr\\lib\\gcc\\avr\\7.3.0\\include",
                 "c:\\program files (x86)\\arduino\\hardware\\tools\\avr\\lib\\gcc\\avr\\7.3.0\\include-fixed",
                 "c:\\program files (x86)\\arduino\\hardware\\tools\\avr\\avr\\include"
@@ -32,7 +33,7 @@
             "cppStandard": "c++11",
             "defines": [
                 "F_CPU=16000000L",
-                "ARDUINO=10813",
+                "ARDUINO=10819",
                 "ARDUINO_AVR_NANO",
                 "ARDUINO_ARCH_AVR",
                 "__DBL_MIN_EXP__=(-125)",
