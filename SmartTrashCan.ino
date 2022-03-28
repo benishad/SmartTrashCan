@@ -1,6 +1,6 @@
 /*
 1. 무게를 측정하여 20g이하면 살충제X                                         ---해결
-2. 무게를 측정하여 20g이상이면 살충제 O (주기별로)                            ---
+2. 무게를 측정하여 20g이상이면 살충제 O (주기별로)                            ---해결
 3. CDS를 설치하여 개폐여부를 확인하여 열려있을때 살충제X                      ---해결
 4. 초음파센서를 활용하여 얼마나 차는지 확인                                   ---해결
 5. DS1302를 활용하여 계절을 파악하고(설정또한 디스플레이로 가능하도록)        ---해결
@@ -10,10 +10,13 @@
 #include <LiquidCrystal_I2C.h>       //LCD 라이브러리
 #include <RTClib_Johnny.h>
 #include "HX711.h"
+#include <Servo.h>
 
 #define calibration_factor -7050.0
 int DoutPin = 9;
 int ClkPin = 8;
+
+Servo spray;                      //서보모터 이름 spray로 설정
 
 HX711 scale;
 
@@ -21,15 +24,16 @@ DS1302 rtc(7, 6, 5);              //RST, CLK, DAT
 
 LiquidCrystal_I2C lcd(0x27, 16,2);                               //lcd 주소값 설정
 
-int Bottom_trig = 4;              //1번 초음파센서 핀 4,3 번
-int Bottom_echo = 3;
+int Bottom_trig = 3;              //1번 초음파센서 핀 4,3 번
+int Bottom_echo = 4;
 int ledpin = 8;
 
 int dis = 5;                      //쓰레기와 센서 최소 거리(cm)
 
 int CDSPin = A0;
-int cds = 0;
 int waterSen = A1;
+
+int cds = 0;
 int water = 0;
 int weightOne = 0;
 
@@ -45,6 +49,7 @@ void setup()
   Serial.begin(9600);
   scale.begin(DoutPin, ClkPin);
   rtc.begin();
+  spray.attach(10);                                             //서보모터 10번 핀
   lcd.init();                                                   //lcd초기화
   lcd.backlight();                                              //lcd 바탕을 밝게하기
   lcd.print("Start~");
@@ -63,12 +68,11 @@ void setup()
   pinMode(Bottom_echo, INPUT);
   pinMode(ledpin, OUTPUT);
 }
-
+//****************************************LOOP
 void loop()
 {
   CDS();
   SEASON_READ();
-  MIN();
 }
 
 //**************************************덮게가 열린지 판단
@@ -78,14 +82,17 @@ void CDS()
   
   if(cds < 600)                 //뚜껑 열림
   {
+    lcd.setCursor(0,1);
+    lcd.print("OPEN ");
     Serial.print("CDS = ");
     Serial.println(cds);
   }
   else if(cds > 600)            //뚜껑 닫음
   {
-    BOTTOM_SONIC();
-    LOADCELL();
-    //  Serial.print("살충제 치익");
+    lcd.setCursor(0,1);
+    lcd.print("CLOSE");
+    BOTTOM_SONIC();             //얼마나 차는지 확인
+    LOADCELL();                 //무게를 감지하여 살충제 사용
   }
   delay(200);
 }
@@ -108,7 +115,7 @@ void BOTTOM_SONIC()
   else if(Bottom_distance < dis*2 && Bottom_distance > dis)
   {
     lcd.setCursor(12,1);
-    lcd.print("MID");
+    lcd.print("MID ");
     Serial.print("Mdis = ");
     Serial.println(Bottom_distance);
   }
@@ -128,7 +135,6 @@ void SEASON_READ()
   DateTime now = rtc.now();
   Serial.println(now.tostr(buf));
   delay(1000);
-  //Serial.println(now.month(),DEC);
 
   if(now.month()==3 || now.month()==4 || now.month()==5)
   {
@@ -156,6 +162,7 @@ void SEASON_READ()
     lcd.print("WINTER");
   }
 }
+
 //**************************************알림부부
 void BLINKLED()
 {
@@ -165,21 +172,28 @@ void BLINKLED()
   delay(200);
 }
 
+//**************************************무게감지
 void LOADCELL()
 {
   DateTime now = rtc.now();
   weightOne = scale.get_units();
   delay(50);
-  if(weightOne > 20 && now.minute()==30)
+  if(weightOne > 20 && now.minute()==30 && state == true)
   {
+    spray.write(80);
     BLINKLED();
+    state == false;
+  }
+  else if(now.minute() == 28)
+  {
+    state = true;
   }
   else
   {
     Serial.println("WAIT...");
   }
 }
-
+//*************************************수위감지
 void WATERLEVEL()
 {
   water = analogRead(waterSen);
@@ -190,17 +204,8 @@ void WATERLEVEL()
   {
     BLINKLED();
   }
-
-}
-void MIN()
-{
-  DateTime now = rtc.now();
-  if(now.minute() == 58 && state == true){
-    Serial.println("HOHO30MIN~~");
-    state = false;
-  }
-  else if(now.minute() == 57)
+  else
   {
-    state = true;
+    digitalWrite(ledpin, LOW);
   }
 }
