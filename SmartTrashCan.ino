@@ -22,19 +22,21 @@ HX711 scale;
 
 DS1302 rtc(7, 6, 5);              //RST, CLK, DAT
 
-LiquidCrystal_I2C lcd(0x27, 16,2);                               //lcd 주소값 설정
+LiquidCrystal_I2C lcd(0x27, 16,2); //lcd 주소값 설정
 
-int Bottom_trig = 3;              //1번 초음파센서 핀 4,3 번
+int waterSen = 12;
+
+int Bottom_trig = 3;              //초음파센서 핀 3,4 번
 int Bottom_echo = 4;
-int ledpin = 8;
+int buzzer = 11;                  //부저 11번
+
+int tones[] = {261,523};          //부저 음계 도,시 설정 4옥타브Hz
 
 int dis = 5;                      //쓰레기와 센서 최소 거리(cm)
 
-int CDSPin = A0;
-int waterSen = A1;
+int CDSPin = A0;                  //cds A0핀
+int ledpin = A1;                  //led핀 A1
 
-int cds = 0;
-int water = 0;
 int weightOne = 0;
 
 float Bottom_duration;
@@ -49,10 +51,10 @@ void setup()
   Serial.begin(9600);
   scale.begin(DoutPin, ClkPin);
   rtc.begin();
-  spray.attach(10);                                             //서보모터 10번 핀
-  lcd.init();                                                   //lcd초기화
-  lcd.backlight();                                              //lcd 바탕을 밝게하기
-  lcd.print("Start~");
+  spray.attach(10);                        //서보모터 10번 핀
+  lcd.init();                              //lcd초기화
+  lcd.backlight();                         //lcd 바탕을 밝게하기
+
   if (rtc.isrunning()) {
     Serial.println("RTC is running!");
     // following line sets the RTC to the date & time this sketch was compiled
@@ -67,18 +69,22 @@ void setup()
   pinMode(Bottom_trig, OUTPUT);
   pinMode(Bottom_echo, INPUT);
   pinMode(ledpin, OUTPUT);
+  pinMode(buzzer, OUTPUT);
+
+  pinMode(waterSen , INPUT);
 }
 //****************************************LOOP
 void loop()
 {
   CDS();
   SEASON_READ();
+  WATERLEVEL();
 }
 
 //**************************************덮게가 열린지 판단
 void CDS()
 {
-  cds = analogRead(CDSPin);
+  int cds = analogRead(CDSPin);
   
   if(cds < 600)                 //뚜껑 열림
   {
@@ -112,14 +118,14 @@ void BOTTOM_SONIC()
     Serial.print("Tdis = ");
     Serial.println(Bottom_distance);
   }
-  else if(Bottom_distance < dis*2 && Bottom_distance > dis)
+  else if(Bottom_distance < dis*3 && Bottom_distance > dis)
   {
     lcd.setCursor(12,1);
     lcd.print("MID ");
     Serial.print("Mdis = ");
     Serial.println(Bottom_distance);
   }
-  else if(Bottom_distance > dis*2)
+  else if(Bottom_distance > dis*3)
   {
     lcd.setCursor(12,1);
     lcd.print("LESS");
@@ -156,7 +162,6 @@ void SEASON_READ()
   }
   else if(now.month()==12 || now.month()==1 || now.month()==2)
   {
-    
     Serial.println("겨울");
     lcd.setCursor(10,0);
     lcd.print("WINTER");
@@ -164,12 +169,33 @@ void SEASON_READ()
 }
 
 //**************************************알림부부
-void BLINKLED()
-{
-  digitalWrite(ledpin, HIGH);
-  delay(200);
-  digitalWrite(ledpin, LOW);
-  delay(200);
+void BLINKLED(int num)              //몇 번 반복할지 설정
+{                                   //숫자 홀수,짝수로 껐다 킴
+  for(int i = 1; i<num; i++)
+  {
+    if(i%2 == 0)
+    {
+      analogWrite(ledpin, 255);
+    }
+    else
+    {
+      analogWrite(ledpin, 0);
+    }
+    delay(100);
+  }
+}
+
+void BUZZER(int num)              //몇 번 반복할지 설정
+{                                 //설정 한 수 많큼 알람 울림
+  for(int i=0; i < num; i++)
+  {
+    for(int j=0; j<2;j++)
+    {
+      tone(buzzer,tones[j]);
+      delay(100);
+      noTone(buzzer);
+    }
+  }
 }
 
 //**************************************무게감지
@@ -178,10 +204,13 @@ void LOADCELL()
   DateTime now = rtc.now();
   weightOne = scale.get_units();
   delay(50);
-  if(weightOne > 20 && now.minute()==30 && state == true)
+  if(weightOne > 20 && now.minute()==30 && state == true)       //20g 이상 , 30분 이면 모터 동작
   {
+    //BUZZER(3);
+    BLINKLED(5);
     spray.write(80);
-    BLINKLED();
+    delay(10);
+    spray.write(0);
     state == false;
   }
   else if(now.minute() == 28)
@@ -196,16 +225,16 @@ void LOADCELL()
 //*************************************수위감지
 void WATERLEVEL()
 {
-  water = analogRead(waterSen);
-  Serial.print("water = ");
-  Serial.println(water);
+  int water = digitalRead(waterSen);
 
-  if(water < 500)
+  if(water == HIGH)                   //액체 부족하면 led로 알려줌
   {
-    BLINKLED();
+    BLINKLED(21);
+    //BUZZER(3);
   }
   else
   {
-    digitalWrite(ledpin, LOW);
+    analogWrite(ledpin, 0);
+    noTone(buzzer);
   }
 }
