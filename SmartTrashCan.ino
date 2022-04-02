@@ -20,8 +20,9 @@ Servo spray;                      //서보모터 이름 spray로 설정
 
 HX711 scale;
 
-DS1302 rtc(7, 6, 5);              //RST, CLK, DAT
-
+DS1302 rtc(5, 7, 6);              //RST, CLK, DAT
+//5,7,6
+//7,6,5 
 LiquidCrystal_I2C lcd(0x27, 16,2); //lcd 주소값 설정
 
 int waterSen = 12;
@@ -72,6 +73,7 @@ void setup()
   pinMode(buzzer, OUTPUT);
 
   pinMode(waterSen , INPUT);
+  spray.write(0);
 }
 //****************************************LOOP
 void loop()
@@ -207,11 +209,11 @@ void LOADCELL()
   if(weightOne > 20 && now.minute()==30 && state == true)       //20g 이상 , 30분 이면 모터 동작
   {
     //BUZZER(3);
-    BLINKLED(5);
-    spray.write(80);
-    delay(10);
+    BLINKLED(30);
+    spray.write(110);
+    delay(500);
     spray.write(0);
-    state == false;
+    state = false;
   }
   else if(now.minute() == 28)
   {
@@ -230,7 +232,7 @@ void WATERLEVEL()
   if(water == HIGH)                   //액체 부족하면 led로 알려줌
   {
     BLINKLED(21);
-    //BUZZER(3);
+    BUZZER(3);
   }
   else
   {
